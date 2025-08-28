@@ -66,9 +66,7 @@ const getCartDetails = async (req, res) => {
     const productDetails = cart.items.map((item) => {
       return {
         ...item._doc,
-        productImages: item.product.productImages.map(
-          (filename) => `http://localhost:5000/uploads/${filename}`
-        ),
+        productImages: item.product.productImages
       };
     });
 
@@ -95,9 +93,7 @@ const cartDelete = async (req, res) => {
     const productDetails = updatedCart.items.map((item) => {
       return {
         ...item._doc,
-        productImages: item.product.productImages.map(
-          (filename) => `http://localhost:5000/uploads/${filename}`
-        ),
+        productImages: item.product.productImages
       };
     });
     

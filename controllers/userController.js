@@ -32,9 +32,7 @@ const userSignUp = async (req, res) => {
       {
         id: savedUser.id,
         name: savedUser.name,
-        userImage: savedUser.userImage
-          ? `http://localhost:5000/uploads/${savedUser.userImage}`
-          : "",
+        userImage: savedUser.userImage,
         email: savedUser.email,
         userType: savedUser.userType,
       },
@@ -79,8 +77,6 @@ const userSignIn = async (req, res) => {
         name: userExists.name,
         email: userExists.email,
         userImage: userExists.userImage
-          ? `http://localhost:5000/uploads/${userExists.userImage}`
-          : "",
         userType: userExists.userType,
       },
       JWT_SECRET,
@@ -125,9 +121,7 @@ const userUpdate = async (req, res) => {
         id: findUser.id,
         name: findUser.name,
         email: findUser.email,
-        userImage: findUser.userImage
-          ? `http://localhost:5000/uploads/${findUser.userImage}`
-          : "",
+        userImage: findUser.userImage,
         userType: findUser.userType,
       },
       JWT_SECRET,
