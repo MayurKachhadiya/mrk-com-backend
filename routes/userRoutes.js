@@ -7,13 +7,9 @@ const {
 const router = express.Router();
 const imageUpload = require("../middleware/imageUpload");
 const auth = require("../middleware/auth");
+const { upload } = require("../config/cloudinary");
 
-router.post("/signup", imageUpload.single("profileImages"), userSignUp);
+router.post("/signup", upload.single("profileImages"), userSignUp);
 router.post("/signIn", userSignIn);
-router.post(
-  "/update/:uid",
-  auth,
-  imageUpload.single("profileImages"),
-  userUpdate
-);
+router.post("/update/:uid", auth, upload.single("profileImages"), userUpdate);
 module.exports = router;

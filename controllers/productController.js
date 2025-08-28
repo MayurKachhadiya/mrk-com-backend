@@ -274,8 +274,10 @@ const productUpdate = async (req, res) => {
     const remainingOldImages = product.productImages.filter(
       (img) => !deletedImages.includes(img)
     );
-
-    const newImages = files.map((file) => file.filename);
+    const newImages = files.map((file)=>{
+      file.path
+    });
+    // const newImages = files.map((file) => file.filename);
     const updatedImages = [...remainingOldImages, ...newImages];
 
     // Validate image count

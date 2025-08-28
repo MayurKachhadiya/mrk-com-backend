@@ -6,7 +6,7 @@ const TOKEN_TTL = "1h";
 
 const userSignUp = async (req, res) => {
   const { name, email, password, userType = "user" } = req.body;
-  const profileImage = req.file ? req.file.filename : null;
+  const profileImage = req.file ? req.file.path : null;
 
   if (!name || !email || !password) {
     return res.status(400).json({ message: "All fields are required" });
@@ -76,7 +76,7 @@ const userSignIn = async (req, res) => {
         id: userExists.id,
         name: userExists.name,
         email: userExists.email,
-        userImage: userExists.userImage
+        userImage: userExists.userImage,
         userType: userExists.userType,
       },
       JWT_SECRET,
@@ -96,7 +96,7 @@ const userSignIn = async (req, res) => {
 const userUpdate = async (req, res) => {
   try {
     const { uid } = req.params;
-    const userImage = req.file ? req.file.filename : null;
+    const userImage = req.file ? req.file.path : null;
 
     const { userName, userEmail, userPassword } = req.body;
     if (!userName || !userEmail) {
