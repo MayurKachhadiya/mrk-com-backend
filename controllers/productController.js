@@ -62,7 +62,7 @@ const productsShow = async (req, res) => {
     const filteredProducts = products.map((product) => {
       return {
         ...product._doc,
-        productImages: product.productImages
+        productImages: product.productImages,
       };
     });
     const rowsPerPage = 10;
@@ -112,7 +112,7 @@ const productShow = async (req, res) => {
     // create image URL
     const productDetails = {
       ...productFind._doc,
-      productImages: productFind.productImages
+      productImages: productFind.productImages,
     };
 
     const avgRating =
@@ -192,7 +192,7 @@ const productDelete = async (req, res) => {
     const products = await Product.find();
     const updatedProducts = products.map((product) => ({
       ...product._doc,
-      productImages: product.productImages
+      productImages: product.productImages,
     }));
 
     const token = jwt.sign({ products: updatedProducts }, JWT_SECRET, {
@@ -274,9 +274,7 @@ const productUpdate = async (req, res) => {
     const remainingOldImages = product.productImages.filter(
       (img) => !deletedImages.includes(img)
     );
-    const newImages = files.map((file)=>{
-      file.path
-    });
+    const newImages = files.map((file) => file.path);
     // const newImages = files.map((file) => file.filename);
     const updatedImages = [...remainingOldImages, ...newImages];
 
@@ -318,7 +316,7 @@ const productSearch = async (req, res) => {
 
     const filteredProducts = products.map((product) => ({
       ...product._doc,
-      productImages: product.productImages
+      productImages: product.productImages,
     }));
     const rowsPerPage = rowPerPage;
     const startIndex = currentPage * rowsPerPage;
