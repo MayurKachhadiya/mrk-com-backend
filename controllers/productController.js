@@ -322,9 +322,7 @@ const productSearch = async (req, res) => {
 
     const filteredProducts = products.map((product) => ({
       ...product._doc,
-      productImages: product.productImages.map(
-        (filename) => `http://localhost:5000/uploads/${filename}`
-      ),
+      productImages: product.productImages
     }));
     const rowsPerPage = rowPerPage;
     const startIndex = currentPage * rowsPerPage;
