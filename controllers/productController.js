@@ -171,46 +171,47 @@ const productShow = async (req, res) => {
   }
 };
 
+// helper to extract public_id from cloudinary URL
+function getPublicIdFromUrl(url) {
+  const parts = url.split("/");
+  const folderAndFile = parts.slice(parts.indexOf("upload") + 2).join("/");
+  return folderAndFile.split(".")[0];
+}
+
 const productDelete = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const { id } = req.params;
+    const product = await Product.findByIdAndDelete(id);
 
-    const product = await Product.findById(id);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // delete all product images from Cloudinary (extract public_id from URL)
+    // 1️⃣ Delete all product images from Cloudinary
     for (const imageUrl of product.productImages) {
-      const publicId = imageUrl
-        .split("/")
-        .slice(-2)
-        .join("/")
-        .split(".")[0];
-
+      const publicId = getPublicIdFromUrl(imageUrl);
       try {
         await cloudinary.uploader.destroy(publicId);
+        console.log(`Deleted Cloudinary image: ${publicId}`);
       } catch (err) {
         console.error(`Failed to delete Cloudinary image ${publicId}:`, err.message);
       }
     }
 
-    await Product.findByIdAndDelete(id);
-
-    // Get updated list of products
+    // 2️⃣ Get updated list of products
     const products = await Product.find();
-    const updatedProducts = products.map((product) => ({
-      ...product._doc,
-      productImages: product.productImages,
+    const updatedProducts = products.map((p) => ({
+      ...p._doc,
+      productImages: p.productImages,
     }));
 
+    // 3️⃣ Sign new token with updated products
     const token = jwt.sign({ products: updatedProducts }, JWT_SECRET, {
       expiresIn: TOKEN_TTL,
     });
 
-    res.status(200).json({ message: "Product deleted", token });
+    res.status(200).json({ message: "Product deleted successfully", token });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -289,16 +290,15 @@ const productUpdate = async (req, res) => {
     }
 
     // Delete selected images from disk
-    // deletedImages.forEach((filename) => {
-    //   const filePath = path.join(__dirname, "..", "uploads", filename);
-    //   fs.unlink(filePath, (err) => {
-    //     if (err) {
-    //       console.error(`Failed to delete file ${filename}:`, err.message);
-    //     }
-    //   });
-    // });
-    console.log("product.productImages-------",product.productImages);
-    
+    deletedImages.forEach((filename) => {
+      const filePath = path.join(__dirname, "..", "uploads", filename);
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Failed to delete file ${filename}:`, err.message);
+        }
+      });
+    });
+
     const remainingOldImages = product.productImages.filter(
       (img) => !deletedImages.includes(img)
     );
