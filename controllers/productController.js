@@ -195,23 +195,25 @@ const productDelete = async (req, res) => {
         await cloudinary.uploader.destroy(publicId);
         console.log(`Deleted Cloudinary image: ${publicId}`);
       } catch (err) {
-        console.error(`Failed to delete Cloudinary image ${publicId}:`, err.message);
+        console.error(
+          `Failed to delete Cloudinary image ${publicId}:`,
+          err.message
+        );
       }
     }
 
-    // 2️⃣ Get updated list of products
+    // Get updated list of products
     const products = await Product.find();
-    const updatedProducts = products.map((p) => ({
-      ...p._doc,
-      productImages: p.productImages,
+    const updatedProducts = products.map((product) => ({
+      ...product._doc,
+      productImages: product.productImages,
     }));
 
-    // 3️⃣ Sign new token with updated products
     const token = jwt.sign({ products: updatedProducts }, JWT_SECRET, {
       expiresIn: TOKEN_TTL,
     });
 
-    res.status(200).json({ message: "Product deleted successfully", token });
+    res.status(200).json({ message: "Product deleted", token });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -257,7 +259,7 @@ const productUpdate = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-     // 1️⃣ Delete selected images from Cloudinary using extracted public_id
+    // 1️⃣ Delete selected images from Cloudinary using extracted public_id
     for (const imageUrl of deletedImages) {
       const publicId = imageUrl
         .split("/")
@@ -265,11 +267,14 @@ const productUpdate = async (req, res) => {
         .join("/")
         .split(".")[0]; // remove extension
       try {
-        console.log("publicId------",publicId);
-        
+        console.log("publicId------", publicId);
+
         await cloudinary.uploader.destroy(publicId);
       } catch (err) {
-        console.error(`Failed to delete Cloudinary image ${publicId}:`, err.message);
+        console.error(
+          `Failed to delete Cloudinary image ${publicId}:`,
+          err.message
+        );
       }
     }
 
@@ -302,17 +307,17 @@ const productUpdate = async (req, res) => {
     const remainingOldImages = product.productImages.filter(
       (img) => !deletedImages.includes(img)
     );
-    console.log("files==========",files);
-    
+    console.log("files==========", files);
+
     const newImages = files.map((file) => file.path);
     // const newImages = files.map((file) => file.filename);
-    console.log("remainingOldImages---------",remainingOldImages);
-    console.log("newImages---------",newImages);
-    
+    console.log("remainingOldImages---------", remainingOldImages);
+    console.log("newImages---------", newImages);
+
     const updatedImages = [...remainingOldImages, ...newImages];
-    console.log("updatedImages-------",updatedImages);
-    console.log("updatedImages__length-------",updatedImages.length);
-    
+    console.log("updatedImages-------", updatedImages);
+    console.log("updatedImages__length-------", updatedImages.length);
+
     // Validate image count
     if (updatedImages.length >= 6) {
       return res.status(400).json({
