@@ -259,25 +259,6 @@ const productUpdate = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // 1️⃣ Delete selected images from Cloudinary using extracted public_id
-    for (const imageUrl of deletedImages) {
-      const publicId = imageUrl
-        .split("/")
-        .slice(-2) // take last 2 segments: folder + filename
-        .join("/")
-        .split(".")[0]; // remove extension
-      try {
-        console.log("publicId------", publicId);
-
-        await cloudinary.uploader.destroy(publicId);
-      } catch (err) {
-        console.error(
-          `Failed to delete Cloudinary image ${publicId}:`,
-          err.message
-        );
-      }
-    }
-
     // Validate uploaded files type
     const allowedMimeTypes = [
       "image/jpeg",
@@ -294,15 +275,19 @@ const productUpdate = async (req, res) => {
       });
     }
 
-    // Delete selected images from disk
-    deletedImages.forEach((filename) => {
-      const filePath = path.join(__dirname, "..", "uploads", filename);
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error(`Failed to delete file ${filename}:`, err.message);
-        }
-      });
-    });
+    // 1️⃣ Delete all product images from Cloudinary
+    for (const imageUrl of deletedImages) {
+      const publicId = getPublicIdFromUrl(imageUrl);
+      try {
+        await cloudinary.uploader.destroy(publicId);
+        console.log(`Deleted Cloudinary image: ${publicId}`);
+      } catch (err) {
+        console.error(
+          `Failed to delete Cloudinary image ${publicId}:`,
+          err.message
+        );
+      }
+    }
 
     const remainingOldImages = product.productImages.filter(
       (img) => !deletedImages.includes(img)
