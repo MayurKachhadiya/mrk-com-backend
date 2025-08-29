@@ -178,22 +178,6 @@ const productShow = async (req, res) => {
 //   return folderAndFile.split(".")[0];
 // }
 
-function getPublicIdFromUrl(url) {
-  try {
-    const parts = url.split("/");
-    // Find index of "upload" in the URL
-    const uploadIndex = parts.indexOf("upload");
-
-    // Public id is everything after /upload/<version>/
-    // Example: mrk-ecom/pyhjoraezxk6shtpwvnn
-    const publicIdWithExt = parts.slice(uploadIndex + 2).join("/");
-    return publicIdWithExt.replace(/\.[^/.]+$/, ""); // remove extension
-  } catch (err) {
-    console.error("Failed to extract public_id from URL:", url, err.message);
-    return null;
-  }
-}
-
 const productDelete = async (req, res) => {
   const { id } = req.params;
 
@@ -235,6 +219,23 @@ const productDelete = async (req, res) => {
   }
 };
 
+// helper to extract public_id from cloudinary URL
+function getPublicIdFromUrl(url) {
+  try {
+    // Example: https://res.cloudinary.com/demo/image/upload/v1234567/mrk-ecom/abcd123.jpg
+    const parts = url.split("/");
+    const uploadIndex = parts.indexOf("upload");
+    if (uploadIndex === -1) return null;
+
+    // everything after version number
+    const publicIdWithExt = parts.slice(uploadIndex + 2).join("/");
+    // remove extension (.jpg, .png, etc.)
+    return publicIdWithExt.replace(/\.[^/.]+$/, "");
+  } catch {
+    return null;
+  }
+}
+
 const productUpdate = async (req, res) => {
   const { id } = req.params;
   const files = req.files;
@@ -249,25 +250,14 @@ const productUpdate = async (req, res) => {
 
   const deletedImages = JSON.parse(deletedImagesRaw || "[]");
 
-  if (
-    !productName ||
-    !productDescription ||
-    !productPrice ||
-    !productColor ||
-    !productQuantity
-  ) {
+  if (!productName || !productDescription || !productPrice || !productColor || !productQuantity) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
-    const productExist = await Product.findOne({
-      productName,
-      _id: { $ne: id },
-    });
+    const productExist = await Product.findOne({ productName, _id: { $ne: id } });
     if (productExist) {
-      return res
-        .status(409)
-        .json({ message: "Product name already exists for another product" });
+      return res.status(409).json({ message: "Product name already exists for another product" });
     }
 
     const product = await Product.findById(id);
@@ -275,89 +265,64 @@ const productUpdate = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // Validate uploaded files type
-    const allowedMimeTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/jpg",
-      "image/webp",
-    ];
-    const invalidFile = files.find(
-      (file) => !allowedMimeTypes.includes(file.mimetype)
-    );
-    if (invalidFile) {
-      return res.status(400).json({
-        message: `Invalid file type: ${invalidFile.originalname}. Only JPG, PNG, and WEBP are allowed.`,
-      });
-    }
-
-    // 1️⃣ Delete all product images from Cloudinary
+    // ✅ 1. Delete selected images from Cloudinary
     for (const imageUrl of deletedImages) {
       const publicId = getPublicIdFromUrl(imageUrl);
-      if (!publicId) continue; // skip if failed to extract
+      if (!publicId) continue;
 
       try {
         await cloudinary.uploader.destroy(publicId);
         console.log(`Deleted Cloudinary image: ${publicId}`);
       } catch (err) {
-        console.error(
-          `Failed to delete Cloudinary image ${publicId}:`,
-          err.message
-        );
+        console.error(`Failed to delete Cloudinary image ${publicId}:`, err.message);
       }
     }
 
+    // ✅ 2. Remove deleted images from MongoDB record
     const remainingOldImages = product.productImages.filter(
       (img) => !deletedImages.includes(img)
     );
-    console.log("files==========", files);
 
-    // ✅ New code
+    // ✅ 3. Upload new files to Cloudinary
     const newImages = [];
     for (const file of files) {
       try {
         const uploadRes = await cloudinary.uploader.upload(file.path, {
-          folder: "mrk-ecom", // optional
+          folder: "mrk-ecom",
         });
-        newImages.push(uploadRes.secure_url); // Cloudinary URL
+        newImages.push(uploadRes.secure_url);
       } catch (err) {
-        console.error("Failed to upload image:", err.message);
+        console.error("Failed to upload new image:", err.message);
       }
     }
 
-    // const newImages = files.map((file) => file.filename);
-    console.log("remainingOldImages---------", remainingOldImages);
-    console.log("newImages---------", newImages);
-
+    // ✅ 4. Merge old + new
     const updatedImages = [...remainingOldImages, ...newImages];
-    console.log("updatedImages-------", updatedImages);
-    console.log("updatedImages__length-------", updatedImages.length);
 
-    // Validate image count
-    if (updatedImages.length >= 6) {
-      return res.status(400).json({
-        message: "You can upload a maximum of 5 images per product.",
-      });
+    // ✅ 5. Validate image count
+    if (updatedImages.length > 5) {
+      return res.status(400).json({ message: "You can upload a maximum of 5 images per product." });
     }
     if (updatedImages.length === 0) {
-      return res.status(400).json({
-        message: "At least 1 image is required for a product.",
-      });
+      return res.status(400).json({ message: "At least 1 image is required for a product." });
     }
 
-    // Update fields
+    // ✅ 6. Update product in MongoDB
     product.productName = productName;
     product.productDescription = productDescription;
     product.productPrice = productPrice;
     product.productColor = productColor;
     product.productQuantity = productQuantity;
     product.productImages = updatedImages;
+
     await product.save();
-    res.status(200).json({ message: "Product updated successfully" });
+
+    res.status(200).json({ message: "Product updated successfully", product });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 const productSearch = async (req, res) => {
   try {
