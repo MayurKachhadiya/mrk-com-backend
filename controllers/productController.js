@@ -274,6 +274,8 @@ const productUpdate = async (req, res) => {
     const remainingOldImages = product.productImages.filter(
       (img) => !deletedImages.includes(img)
     );
+    console.log("files==========",files);
+    
     const newImages = files.map((file) => file.path);
     // const newImages = files.map((file) => file.filename);
     console.log("remainingOldImages---------",remainingOldImages);
@@ -302,9 +304,7 @@ const productUpdate = async (req, res) => {
     product.productColor = productColor;
     product.productQuantity = productQuantity;
     product.productImages = updatedImages;
-
     await product.save();
-
     res.status(200).json({ message: "Product updated successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
