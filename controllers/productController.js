@@ -266,8 +266,14 @@ const productUpdate = async (req, res) => {
     }
 
     // ✅ 1. Delete selected images from Cloudinary
+    console.log("deletedImages=-=------------",deletedImages);
+    
     for (const imageUrl of deletedImages) {
+      console.log("imageUrl---------",imageUrl);
+      
       const publicId = getPublicIdFromUrl(imageUrl);
+      console.log("publicId=============",publicId);
+      
       if (!publicId) continue;
 
       try {
