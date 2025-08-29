@@ -218,7 +218,7 @@ const productUpdate = async (req, res) => {
     deletedImages: deletedImagesRaw,
   } = req.body;
 
-  const deletedImages = JSON.parse(deletedImagesRaw || "[]"); // contains full URLs
+  const deletedImages = JSON.parse(deletedImagesRaw || "[]");
 
   if (
     !productName ||
@@ -246,38 +246,65 @@ const productUpdate = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // 1️⃣ Delete selected images from Cloudinary using extracted public_id
+     // 1️⃣ Delete selected images from Cloudinary using extracted public_id
     for (const imageUrl of deletedImages) {
       const publicId = imageUrl
         .split("/")
         .slice(-2) // take last 2 segments: folder + filename
         .join("/")
         .split(".")[0]; // remove extension
-
       try {
+        console.log("publicId------",publicId);
+        
         await cloudinary.uploader.destroy(publicId);
       } catch (err) {
-        console.error(
-          `Failed to delete Cloudinary image ${publicId}:`,
-          err.message
-        );
+        console.error(`Failed to delete Cloudinary image ${publicId}:`, err.message);
       }
     }
 
-    // 2️⃣ Keep remaining images in MongoDB
-    const remainingOldImages = product.productImages.filter(
-      (imgUrl) => !deletedImages.includes(imgUrl)
+    // Validate uploaded files type
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+      "image/webp",
+    ];
+    const invalidFile = files.find(
+      (file) => !allowedMimeTypes.includes(file.mimetype)
     );
-    console.log("files==========", files);
+    if (invalidFile) {
+      return res.status(400).json({
+        message: `Invalid file type: ${invalidFile.originalname}. Only JPG, PNG, and WEBP are allowed.`,
+      });
+    }
 
-    // 3️⃣ Add newly uploaded images (URLs only)
+    // Delete selected images from disk
+    deletedImages.forEach((filename) => {
+      const filePath = path.join(__dirname, "..", "uploads", filename);
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Failed to delete file ${filename}:`, err.message);
+        }
+      });
+    });
+    console.log("product.productImages-------",product.productImages);
+    
+    const remainingOldImages = product.productImages.filter(
+      (img) => !deletedImages.includes(img)
+    );
+    console.log("files==========",files);
+    
     const newImages = files.map((file) => file.path);
-    console.log("remainingOldImages---------", remainingOldImages);
-    console.log("newImages---------", newImages);
+    // const newImages = files.map((file) => file.filename);
+    console.log("remainingOldImages---------",remainingOldImages);
+    console.log("newImages---------",newImages);
+    
     const updatedImages = [...remainingOldImages, ...newImages];
-
-    // 4️⃣ Validate image count
-    if (updatedImages.length > 5) {
+    console.log("updatedImages-------",updatedImages);
+    console.log("updatedImages__length-------",updatedImages.length);
+    
+    // Validate image count
+    if (updatedImages.length >= 6) {
       return res.status(400).json({
         message: "You can upload a maximum of 5 images per product.",
       });
@@ -288,16 +315,15 @@ const productUpdate = async (req, res) => {
       });
     }
 
-    // 5️⃣ Update product fields
+    // Update fields
     product.productName = productName;
     product.productDescription = productDescription;
     product.productPrice = productPrice;
     product.productColor = productColor;
     product.productQuantity = productQuantity;
     product.productImages = updatedImages;
-
     await product.save();
-    res.status(200).json({ message: "Product updated successfully", product });
+    res.status(200).json({ message: "Product updated successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
