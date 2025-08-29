@@ -250,14 +250,25 @@ const productUpdate = async (req, res) => {
 
   const deletedImages = JSON.parse(deletedImagesRaw || "[]");
 
-  if (!productName || !productDescription || !productPrice || !productColor || !productQuantity) {
+  if (
+    !productName ||
+    !productDescription ||
+    !productPrice ||
+    !productColor ||
+    !productQuantity
+  ) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
-    const productExist = await Product.findOne({ productName, _id: { $ne: id } });
+    const productExist = await Product.findOne({
+      productName,
+      _id: { $ne: id },
+    });
     if (productExist) {
-      return res.status(409).json({ message: "Product name already exists for another product" });
+      return res
+        .status(409)
+        .json({ message: "Product name already exists for another product" });
     }
 
     const product = await Product.findById(id);
@@ -266,21 +277,23 @@ const productUpdate = async (req, res) => {
     }
 
     // ✅ 1. Delete selected images from Cloudinary
-    console.log("deletedImages=-=------------",deletedImages);
-    
-    for (const imageUrl of deletedImages) {
-      console.log("imageUrl---------",imageUrl);
-      
-      const publicId = getPublicIdFromUrl(imageUrl);
-      console.log("publicId=============",publicId);
-      
-      if (!publicId) continue;
+    console.log("deletedImages=-=------------", deletedImages);
+
+    for (const filename of deletedImages) {
+      // remove extension
+      const nameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+      // public_id = folder + nameWithoutExt
+      const publicId = `mrk-ecom/${nameWithoutExt}`;
+      console.log("publicId to delete:", publicId);
 
       try {
         await cloudinary.uploader.destroy(publicId);
         console.log(`Deleted Cloudinary image: ${publicId}`);
       } catch (err) {
-        console.error(`Failed to delete Cloudinary image ${publicId}:`, err.message);
+        console.error(
+          `Failed to delete Cloudinary image ${publicId}:`,
+          err.message
+        );
       }
     }
 
@@ -307,10 +320,14 @@ const productUpdate = async (req, res) => {
 
     // ✅ 5. Validate image count
     if (updatedImages.length > 5) {
-      return res.status(400).json({ message: "You can upload a maximum of 5 images per product." });
+      return res
+        .status(400)
+        .json({ message: "You can upload a maximum of 5 images per product." });
     }
     if (updatedImages.length === 0) {
-      return res.status(400).json({ message: "At least 1 image is required for a product." });
+      return res
+        .status(400)
+        .json({ message: "At least 1 image is required for a product." });
     }
 
     // ✅ 6. Update product in MongoDB
@@ -328,7 +345,6 @@ const productUpdate = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 const productSearch = async (req, res) => {
   try {
