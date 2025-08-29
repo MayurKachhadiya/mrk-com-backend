@@ -175,19 +175,29 @@ const productDelete = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const product = await Product.findByIdAndDelete(id);
+    const { id } = req.params;
 
+    const product = await Product.findById(id);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // Optionally delete image files
-    product.productImages.forEach((filename) => {
-      const filepath = path.join(__dirname, "..", "uploads", filename);
-      if (fs.existsSync(filepath)) {
-        fs.unlinkSync(filepath);
+    // delete all product images from Cloudinary (extract public_id from URL)
+    for (const imageUrl of product.productImages) {
+      const publicId = imageUrl
+        .split("/")
+        .slice(-2)
+        .join("/")
+        .split(".")[0];
+
+      try {
+        await cloudinary.uploader.destroy(publicId);
+      } catch (err) {
+        console.error(`Failed to delete Cloudinary image ${publicId}:`, err.message);
       }
-    });
+    }
+
+    await Product.findByIdAndDelete(id);
 
     // Get updated list of products
     const products = await Product.find();
@@ -279,14 +289,14 @@ const productUpdate = async (req, res) => {
     }
 
     // Delete selected images from disk
-    deletedImages.forEach((filename) => {
-      const filePath = path.join(__dirname, "..", "uploads", filename);
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error(`Failed to delete file ${filename}:`, err.message);
-        }
-      });
-    });
+    // deletedImages.forEach((filename) => {
+    //   const filePath = path.join(__dirname, "..", "uploads", filename);
+    //   fs.unlink(filePath, (err) => {
+    //     if (err) {
+    //       console.error(`Failed to delete file ${filename}:`, err.message);
+    //     }
+    //   });
+    // });
     console.log("product.productImages-------",product.productImages);
     
     const remainingOldImages = product.productImages.filter(
