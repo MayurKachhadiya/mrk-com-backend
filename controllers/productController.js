@@ -305,13 +305,18 @@ const productUpdate = async (req, res) => {
     // ✅ 3. Upload new files to Cloudinary
     const newImages = [];
     for (const file of files) {
-      try {
-        const uploadRes = await cloudinary.uploader.upload(file.path, {
-          folder: "mrk-ecom",
-        });
-        newImages.push(uploadRes.secure_url);
-      } catch (err) {
-        console.error("Failed to upload new image:", err.message);
+      // If file already has a Cloudinary URL (rare case), skip re-upload
+      if (file.path.startsWith("https://res.cloudinary.com/")) {
+        newImages.push(file.path);
+      } else {
+        try {
+          const uploadRes = await cloudinary.uploader.upload(file.path, {
+            folder: "mrk-ecom",
+          });
+          newImages.push(uploadRes.secure_url);
+        } catch (err) {
+          console.error("Failed to upload new image:", err.message);
+        }
       }
     }
 
@@ -319,7 +324,7 @@ const productUpdate = async (req, res) => {
     const updatedImages = [...remainingOldImages, ...newImages];
 
     // ✅ 5. Validate image count
-    if (updatedImages.length > 5) {
+    if (updatedImages.length >= 6) {
       return res
         .status(400)
         .json({ message: "You can upload a maximum of 5 images per product." });
