@@ -5,6 +5,7 @@ const path = require("path");
 const fs = require("fs");
 const Cart = require("../models/Cart");
 const Review = require("../models/Review");
+const { cloudinary } = require("../config/cloudinary");
 const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_TTL = "1h";
 
@@ -243,6 +244,20 @@ const productUpdate = async (req, res) => {
     const product = await Product.findById(id);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
+    }
+
+     // 1️⃣ Delete selected images from Cloudinary using extracted public_id
+    for (const imageUrl of deletedImages) {
+      const publicId = imageUrl
+        .split("/")
+        .slice(-2) // take last 2 segments: folder + filename
+        .join("/")
+        .split(".")[0]; // remove extension
+      try {
+        await cloudinary.uploader.destroy(publicId);
+      } catch (err) {
+        console.error(`Failed to delete Cloudinary image ${publicId}:`, err.message);
+      }
     }
 
     // Validate uploaded files type
