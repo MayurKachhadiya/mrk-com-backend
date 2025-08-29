@@ -186,14 +186,13 @@ function getPublicIdFromUrl(url) {
 
     // Public id is everything after /upload/<version>/
     // Example: mrk-ecom/pyhjoraezxk6shtpwvnn
-    const publicIdWithExt = parts.slice(uploadIndex + 2).join("/"); 
+    const publicIdWithExt = parts.slice(uploadIndex + 2).join("/");
     return publicIdWithExt.replace(/\.[^/.]+$/, ""); // remove extension
   } catch (err) {
     console.error("Failed to extract public_id from URL:", url, err.message);
     return null;
   }
 }
-
 
 const productDelete = async (req, res) => {
   const { id } = req.params;
@@ -295,6 +294,8 @@ const productUpdate = async (req, res) => {
     // 1️⃣ Delete all product images from Cloudinary
     for (const imageUrl of deletedImages) {
       const publicId = getPublicIdFromUrl(imageUrl);
+      if (!publicId) continue; // skip if failed to extract
+
       try {
         await cloudinary.uploader.destroy(publicId);
         console.log(`Deleted Cloudinary image: ${publicId}`);
