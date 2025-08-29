@@ -279,7 +279,7 @@ const productUpdate = async (req, res) => {
     const updatedImages = [...remainingOldImages, ...newImages];
 
     // Validate image count
-    if (updatedImages.length > 5) {
+    if (updatedImages.length >= 6) {
       return res.status(400).json({
         message: "You can upload a maximum of 5 images per product.",
       });
