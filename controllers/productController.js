@@ -249,7 +249,8 @@ const productUpdate = async (req, res) => {
   } = req.body;
 
   const deletedImages = JSON.parse(deletedImagesRaw || "[]");
-
+  console.log("deletedImages---------",deletedImages);
+  
   if (
     !productName ||
     !productDescription ||
@@ -297,11 +298,15 @@ const productUpdate = async (req, res) => {
       }
     }
 
+    console.log("productImages----------",product.productImages);
+    console.log("deletedImages-----------",deletedImages);
+    
     // ✅ 2. Remove deleted images from MongoDB record
     const remainingOldImages = product.productImages.filter(
       (img) => !deletedImages.includes(img)
     );
-
+    console.log("remainingOldImages-------------",remainingOldImages);
+    
     // ✅ 3. Upload new files to Cloudinary
     const newImages = [];
     for (const file of files) {
