@@ -172,11 +172,28 @@ const productShow = async (req, res) => {
 };
 
 // helper to extract public_id from cloudinary URL
+// function getPublicIdFromUrl(url) {
+//   const parts = url.split("/");
+//   const folderAndFile = parts.slice(parts.indexOf("upload") + 2).join("/");
+//   return folderAndFile.split(".")[0];
+// }
+
 function getPublicIdFromUrl(url) {
-  const parts = url.split("/");
-  const folderAndFile = parts.slice(parts.indexOf("upload") + 2).join("/");
-  return folderAndFile.split(".")[0];
+  try {
+    const parts = url.split("/");
+    // Find index of "upload" in the URL
+    const uploadIndex = parts.indexOf("upload");
+
+    // Public id is everything after /upload/<version>/
+    // Example: mrk-ecom/pyhjoraezxk6shtpwvnn
+    const publicIdWithExt = parts.slice(uploadIndex + 2).join("/"); 
+    return publicIdWithExt.replace(/\.[^/.]+$/, ""); // remove extension
+  } catch (err) {
+    console.error("Failed to extract public_id from URL:", url, err.message);
+    return null;
+  }
 }
+
 
 const productDelete = async (req, res) => {
   const { id } = req.params;
@@ -294,7 +311,19 @@ const productUpdate = async (req, res) => {
     );
     console.log("files==========", files);
 
-    const newImages = files.map((file) => file.path);
+    // ✅ New code
+    const newImages = [];
+    for (const file of files) {
+      try {
+        const uploadRes = await cloudinary.uploader.upload(file.path, {
+          folder: "mrk-ecom", // optional
+        });
+        newImages.push(uploadRes.secure_url); // Cloudinary URL
+      } catch (err) {
+        console.error("Failed to upload image:", err.message);
+      }
+    }
+
     // const newImages = files.map((file) => file.filename);
     console.log("remainingOldImages---------", remainingOldImages);
     console.log("newImages---------", newImages);
