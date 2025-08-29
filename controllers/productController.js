@@ -276,8 +276,13 @@ const productUpdate = async (req, res) => {
     );
     const newImages = files.map((file) => file.path);
     // const newImages = files.map((file) => file.filename);
+    console.log("remainingOldImages---------",remainingOldImages);
+    console.log("newImages---------",newImages);
+    
     const updatedImages = [...remainingOldImages, ...newImages];
-
+    console.log("updatedImages-------",updatedImages);
+    console.log("updatedImages__length-------",updatedImages.length);
+    
     // Validate image count
     if (updatedImages.length >= 6) {
       return res.status(400).json({
